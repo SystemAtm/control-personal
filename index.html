@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Control de Personal</title>
+<meta name="description" content="Sistema de Control de Personal: personal, vacaciones, ausencias, asistencia y reportes.">
+<meta name="theme-color" content="#16141C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Control de Personal">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236D4AFF'/%3E%3Ctext x='32' y='42' font-family='Arial' font-weight='700' font-size='26' fill='white' text-anchor='middle'%3ECP%3C/text%3E%3C/svg%3E">
+<style>
+  /* ====================================================================
+     Página de entrada al sistema (GitHub Pages).
+     Abre el sistema de Google Apps Script dentro de esta página: así no
+     aparece la franja de aviso de Google y la dirección es la tuya.
+     ==================================================================== */
+  :root { --bg: #16141C; --ink: #fff; --muted: #A7A4B5; --accent: #6D4AFF; --line: #2E2B38; --surface: #1E1C26; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+  #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+  #carga { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: var(--bg); transition: opacity .35s; z-index: 2; }
+  #carga.fuera { opacity: 0; pointer-events: none; }
+  .logo { width: 72px; height: 72px; border-radius: 18px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 28px; letter-spacing: -1px; box-shadow: 0 10px 40px rgba(109, 74, 255, .35); }
+  h1 { margin: 0; font-size: 20px; font-weight: 700; }
+  p { margin: 0; color: var(--muted); font-size: 14px; text-align: center; max-width: 420px; line-height: 1.5; }
+  .barra { width: 160px; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .barra i { display: block; width: 40%; height: 100%; background: var(--accent); border-radius: 4px; animation: ir 1.1s ease-in-out infinite; }
+  @keyframes ir { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+  .caja { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; width: min(520px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 12px; }
+  input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: 14px; }
+  button { padding: 12px 16px; border-radius: 10px; border: 0; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .err { color: #FF6B8B; font-size: 13px; min-height: 18px; }
+</style>
+</head>
+<body>
+<div id="carga"><div class="logo">CP</div><h1>Control de Personal</h1><div class="barra"><i></i></div></div>
+<script>
+  // ====================================================================
+  // CONFIGURACIÓN: pega aquí el enlace /exec de tu sistema (Implementar → Gestionar implementaciones).
+  // Si lo dejas vacío, la página lo pide la primera vez en cada equipo.
+  var URL_SISTEMA = '';
+  // ====================================================================
+
+  (function () {
+    var ls = { get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+               set: function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} } };
+    var valido = function (u) { return /^https:\/\/script\.google\.com\/(a\/macros\/[^\/]+|macros)\/s\/[A-Za-z0-9_-]+\/exec$/.test(String(u || '').trim()); };
+    var q = new URLSearchParams(location.search);
+    // ?s=<enlace /exec> cambia el sistema de este equipo (por ejemplo, para la demo); ?cambiar vuelve a pedirlo
+    if (q.get('s') && valido(q.get('s'))) { ls.set('cp_sistema', q.get('s').trim()); history.replaceState(null, '', location.pathname); }
+    if (q.has('cambiar')) { ls.set('cp_sistema', null); history.replaceState(null, '', location.pathname); }
+    var url = ls.get('cp_sistema') || URL_SISTEMA;
+    var carga = document.getElementById('carga');
+
+    if (!valido(url)) {
+      carga.innerHTML = '<div class="logo">CP</div><div class="caja"><h1>Conectar con el sistema</h1>' +
+        '<p style="text-align:left">Pega el enlace de tu sistema: el que termina en <b>/exec</b> (en Apps Script: Implementar → Gestionar implementaciones → URL de la aplicación web). Se pide una sola vez en este equipo.</p>' +
+        '<input id="u" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"><div class="err" id="e"></div><button id="b">Conectar</button></div>';
+      var inp = document.getElementById('u');
+      document.getElementById('b').onclick = function () {
+        var v = inp.value.trim().replace(/\/dev$/, '/exec');
+        if (!valido(v)) { document.getElementById('e').textContent = 'Ese enlace no es válido: debe empezar con https://script.google.com/macros/s/ y terminar en /exec.'; return; }
+        ls.set('cp_sistema', v); location.reload();
+      };
+      inp.focus();
+      return;
+    }
+
+    var f = document.createElement('iframe');
+    f.id = 'app';
+    f.title = 'Control de Personal';
+    f.allow = 'camera; geolocation; clipboard-read; clipboard-write; fullscreen';
+    f.src = url;
+    f.onload = function () { setTimeout(function () { carga.className = 'fuera'; }, 250); };
+    document.body.appendChild(f);
+    // Si Google tarda demasiado, igual se quita la pantalla de carga
+    setTimeout(function () { carga.className = 'fuera'; }, 12000);
+  })();
+</script>
+</body>
+</html>
