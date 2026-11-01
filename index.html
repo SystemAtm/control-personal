@@ -39,8 +39,8 @@
 <script>
   // ====================================================================
   // CONFIGURACIÓN: pega aquí el enlace /exec de tu sistema (Implementar → Gestionar implementaciones).
-  // Si lo dejas vacío, la página lo pide la primera vez en cada equipo.
-  var URL_SISTEMA = '';
+  // Para pasar del DEMO al sistema REAL basta con cambiar este enlace.
+  var URL_SISTEMA = 'https://script.google.com/macros/s/AKfycbzy9hHwG7-VGn3mD4H7dmJ-hrE5405YsuZ0LVGhyKznH9tzzs1RP-PuQOwZMksKpgVs/exec';
   // ====================================================================
 
   (function () {
@@ -51,7 +51,7 @@
     // ?s=<enlace /exec> cambia el sistema de este equipo (por ejemplo, para la demo); ?cambiar vuelve a pedirlo
     if (q.get('s') && valido(q.get('s'))) { ls.set('cp_sistema', q.get('s').trim()); history.replaceState(null, '', location.pathname); }
     if (q.has('cambiar')) { ls.set('cp_sistema', null); history.replaceState(null, '', location.pathname); }
-    var url = ls.get('cp_sistema') || URL_SISTEMA;
+    var url = URL_SISTEMA || ls.get('cp_sistema');   // el enlace escrito arriba siempre manda
     var carga = document.getElementById('carga');
 
     if (!valido(url)) {
